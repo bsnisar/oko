@@ -11,7 +11,7 @@ logger = getLogger('uvicorn')
 async def lifespan(app: FastAPI):
 	global client
 
-	client = weaviate.Client("http://localhost:8080") 
+	# client = weaviate.Client("http://localhost:8080") 
 
 	logger.info("Initialization complete")
 	yield
@@ -25,7 +25,7 @@ async def add_img(my_file: UploadFile = File(...)):
     return { "name": my_file.filename }
 
 
-@app.post("/inference/{model}")
+@app.post("/i/{model}")
 async def inference(model: str):
     return "UP"
 

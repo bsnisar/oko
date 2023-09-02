@@ -1,3 +1,11 @@
-
+pydantic
 uvicorn[standard]
+
+torch==2.0.1
+sentence-transformers==2.2.2
+open-clip-torch==2.20.0
+transformers==4.30.2
+
+
+# Database
 weaviate-client>=3.23.2
