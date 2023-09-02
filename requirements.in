@@ -1,0 +1,3 @@
+
+uvicorn[standard]
+weaviate-client>=3.23.2
