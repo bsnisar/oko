@@ -1,26 +1,43 @@
+import open_clip
+import torch
+import json
+import asyncio
 import io
+import os
 import base64
+import urllib.parse
 
-from typing import Union
 
-
-from pydantic import BaseModel
+from os import path
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from typing import Union, List
+from PIL import Image
+from pydantic import BaseModel, FileUrl
 from transformers import CLIPProcessor, CLIPModel
+from sentence_transformers import SentenceTransformer
+from logging import getLogger
 
-from threading import Lock
 from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
+
+from .pretrained import BASE_DIR
+
+logger = getLogger('clip')
 
 
 class ClipInput(BaseModel):
-	texts: list = []
-	images: list = []
+	texts: List[str] = []
+	images: List[str] = []
 
-@dataclass
+
+
 class ClipResult:
 	text_vectors: list = []
 	image_vectors: list = []
+
+	def __init__(self, text_vectors, image_vectors):
+		self.text_vectors = text_vectors
+		self.image_vectors = image_vectors
 
 
 class ClipInferenceABS(ABC):
@@ -44,9 +61,8 @@ class ClipInferenceSentenceTransformers(ClipInferenceABS):
 		if cuda:
 			device = cuda_core
 
-		self.img_model = SentenceTransformer('./models/clip', device=device)
-		self.text_model = SentenceTransformer('./models/text', device=device)
-
+		self.img_model = SentenceTransformer(f'{BASE_DIR}/clip', device=device)
+		self.text_model = SentenceTransformer(f'{BASE_DIR}/text', device=device)
 
 	def vectorize(self, payload: ClipInput) -> ClipResult:
 		"""
@@ -104,9 +120,8 @@ class ClipInferenceOpenAI(ClipInferenceABS):
 		self.device = 'cpu'
 		if cuda:
 			self.device=cuda_core
-		self.clip_model = CLIPModel.from_pretrained('./models/openai_clip').to(self.device)
-		self.processor = CLIPProcessor.from_pretrained('./models/openai_clip_processor')
-
+		self.clip_model = CLIPModel.from_pretrained(f'{BASE_DIR}/openai_clip').to(self.device)
+		self.processor = CLIPProcessor.from_pretrained(f'{BASE_DIR}/openai_clip_processor')
 
 	def vectorize(self, payload: ClipInput) -> ClipResult:
 		"""
@@ -182,7 +197,7 @@ class ClipInferenceOpenCLIP(ClipInferenceABS):
 		if cuda:
 			self.device=cuda_core
 
-		cache_dir = './__models/openclip'
+		cache_dir = './models/openclip'
 		with open(path.join(cache_dir, "config.json")) as user_file:
 			config = json.load(user_file)
 
@@ -190,12 +205,10 @@ class ClipInferenceOpenCLIP(ClipInferenceABS):
 		pretrained = config['pretrained']
 
 		model, _, preprocess = open_clip.create_model_and_transforms(
-            model_name,
-            pretrained=pretrained,
-            cache_dir=cache_dir,
-            device=self.device
-        )
-
+			model_name, 
+			pretrained=pretrained, 
+			cache_dir=cache_dir, 
+			device=self.device)
 		if cuda:
 			model = model.to(device=self.device)
 
@@ -259,18 +272,29 @@ class ClipInferenceOpenCLIP(ClipInferenceABS):
 
 class Clip:
 
-	clip: Union[ClipInferenceOpenAI, ClipInferenceSentenceTransformers]
+	clip: Union[ClipInferenceOpenAI, ClipInferenceSentenceTransformers, ClipInferenceOpenCLIP]
 	executor: ThreadPoolExecutor
 
-	def __init__(self, cuda, cuda_core):
+	def __init__(self, cuda_env = os.getenv("ENABLE_CUDA"), cuda_core = os.getenv("CUDA_CORE")):
 		self.executor = ThreadPoolExecutor()
 
-		if path.exists('./__models/openai_clip'):
-			self.clip = ClipInferenceOpenAI(cuda, cuda_core)
-		elif path.exists('./__models/openclip'):
-			self.clip = ClipInferenceOpenCLIP(cuda, cuda_core)
+		cuda_support=False
+
+		if cuda_env is not None and cuda_env == "true" or cuda_env == "1":
+			cuda_support=True
+			if cuda_core is None or cuda_core == "":
+				cuda_core = "cuda:0"
+			else:
+				logger.info("Running on CPU")
+
+		logger.info(f"CUDA support {'on' if cuda_support else 'off'}")
+
+		if path.exists(f'{BASE_DIR}/openai_clip'):
+			self.clip = ClipInferenceOpenAI(cuda_support, cuda_core)
+		elif path.exists(f'{BASE_DIR}/openclip'):
+			self.clip = ClipInferenceOpenCLIP(cuda_support, cuda_core)
 		else:
-			self.clip = ClipInferenceSentenceTransformers(cuda, cuda_core)
+			self.clip = ClipInferenceSentenceTransformers(cuda_support, cuda_core)
 
 	async def vectorize(self, payload: ClipInput):
 		"""
@@ -286,8 +310,24 @@ class Clip:
 		ClipResult
 			The result of the model for both images and text.
 		"""
+
 		return await asyncio.wrap_future(self.executor.submit(self.clip.vectorize, payload))
 
+
+def _resize_with_proportion(original_image, max_size):
+    width, height = original_image.size
+
+    # Calculate new dimensions while preserving aspect ratio
+    if width > height:
+        new_width = max_size
+        new_height = int(height * (max_size / width))
+    else:
+        new_height = max_size
+        new_width = int(width * (max_size / height))
+
+    # Resize the image
+    resized_image = original_image.resize((new_width, new_height), Image.BILINEAR)
+    return resized_image
 
 
 
@@ -296,10 +336,16 @@ class Clip:
 # it will be converted to RGB. This makes sure that they work with
 # SentenceTransformers/Huggingface Transformers which seems to require a (3,
 # height, width) tensor
-def _parse_image(base64_encoded_image_string):
-	image_bytes = base64.b64decode(base64_encoded_image_string)
-	img = Image.open(io.BytesIO(image_bytes))
+def _parse_image(content: str):
+	if content.startswith("file://"):
+		local_path = urllib.parse.unquote(content[len('file://'):])
+		img = Image.open(local_path)
+	else:
+		image_bytes = base64.b64decode(content)
+		img = Image.open(io.BytesIO(image_bytes))
 
 	if img.mode != 'RGB':
 		img = img.convert('RGB')
-	return img
+
+
+	return _resize_with_proportion(img, 512)

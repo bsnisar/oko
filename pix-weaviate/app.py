@@ -20,9 +20,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
-@app.post("/img/")
-async def add_img(my_file: UploadFile = File(...)):
-    return { "name": my_file.filename }
+# @app.post("/img/")
+# async def add_img(my_file: UploadFile = File(...)):
+#     return { "name": my_file.filename }
 
 
 @app.post("/i/{model}")
