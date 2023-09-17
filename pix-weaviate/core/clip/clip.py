@@ -10,25 +10,27 @@ import urllib.parse
 
 from os import path
 from abc import ABC, abstractmethod
-from typing import Union, List
+from typing import Union, List, IO
 from PIL import Image
 from pydantic import BaseModel, FileUrl
 from transformers import CLIPProcessor, CLIPModel
 from sentence_transformers import SentenceTransformer
-from logging import getLogger
+from dataclasses import dataclass, field
 
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 
+from content import ImageContent
 from .pretrained import BASE_DIR
+
+from logging import getLogger
 
 logger = getLogger('clip')
 
-
-class ClipInput(BaseModel):
-	texts: List[str] = []
-	images: List[str] = []
-
+@dataclass
+class ClipInput():
+	texts: List[str] = field(default_factory=list)
+	images: List[ImageContent] = field(default_factory=list)
 
 
 class ClipResult:
@@ -122,7 +124,7 @@ class ClipInferenceOpenAI(ClipInferenceABS):
 			self.device=cuda_core
 		self.clip_model = CLIPModel.from_pretrained(f'{BASE_DIR}/openai_clip').to(self.device)
 		self.processor = CLIPProcessor.from_pretrained(f'{BASE_DIR}/openai_clip_processor')
-
+		
 	def vectorize(self, payload: ClipInput) -> ClipResult:
 		"""
 		Vectorize data from Weaviate.
@@ -314,38 +316,6 @@ class Clip:
 		return await asyncio.wrap_future(self.executor.submit(self.clip.vectorize, payload))
 
 
-def _resize_with_proportion(original_image, max_size):
-    width, height = original_image.size
 
-    # Calculate new dimensions while preserving aspect ratio
-    if width > height:
-        new_width = max_size
-        new_height = int(height * (max_size / width))
-    else:
-        new_height = max_size
-        new_width = int(width * (max_size / height))
-
-    # Resize the image
-    resized_image = original_image.resize((new_width, new_height), Image.BILINEAR)
-    return resized_image
-
-
-
-# _parse_image decodes the base64 and parses the image bytes into a
-# PIL.Image. If the image is not in RGB mode, e.g. for PNGs using a palette,
-# it will be converted to RGB. This makes sure that they work with
-# SentenceTransformers/Huggingface Transformers which seems to require a (3,
-# height, width) tensor
-def _parse_image(content: str):
-	if content.startswith("file://"):
-		local_path = urllib.parse.unquote(content[len('file://'):])
-		img = Image.open(local_path)
-	else:
-		image_bytes = base64.b64decode(content)
-		img = Image.open(io.BytesIO(image_bytes))
-
-	if img.mode != 'RGB':
-		img = img.convert('RGB')
-
-
-	return _resize_with_proportion(img, 512)
+def _parse_image(content: ImageContent):
+	return content.content
