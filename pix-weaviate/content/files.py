@@ -6,13 +6,32 @@ import PIL
 
 from typing import Optional, Any, Union, IO
 from typing_extensions import Annotated
-from pydantic import BaseModel, Field, TypeAdapter, ValidationError, AfterValidator, PlainSerializer
 
 from PIL import Image
 from pathlib import Path
+from abc import ABC, abstractproperty, abstractmethod
 
 
-class ImageContent:
+class Img(ABC):
+
+    @abstractproperty
+    def content(self) -> Image:
+        ...
+
+    @abstractproperty
+    def to_base64(self) -> bytes:
+        ...
+
+    @abstractmethod
+    def resize_with_proportion(self, max_size):
+        ...
+
+    @abstractmethod
+    def save(self, file_path: Union[str, io.BufferedWriter]):
+        ...        
+    
+
+class ImageContent(Img):
 
     def __init__(self, content: Union[str, bytes, Path, IO[bytes]]):
         if type(content) == str and content.startswith("file://"):
@@ -44,11 +63,13 @@ class ImageContent:
         """        
         return self._img
 
+
     @property
-    def as_base64(self) -> bytes:
+    def to_base64(self) -> bytes:
         image_bytes = self._img.tobytes()
         base64_image = base64.b64encode(image_bytes)
         return base64_image
+
 
     def save(self, file_path: Union[str, io.BufferedWriter]):
         """

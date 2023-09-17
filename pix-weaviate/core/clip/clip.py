@@ -28,18 +28,16 @@ from logging import getLogger
 logger = getLogger('clip')
 
 @dataclass
-class ClipInput():
+class ClipInput:
 	texts: List[str] = field(default_factory=list)
 	images: List[ImageContent] = field(default_factory=list)
 
 
+@dataclass
 class ClipResult:
-	text_vectors: list = []
-	image_vectors: list = []
+	text_vectors: list = field(default_factory=list)
+	image_vectors: list = field(default_factory=list)
 
-	def __init__(self, text_vectors, image_vectors):
-		self.text_vectors = text_vectors
-		self.image_vectors = image_vectors
 
 
 class ClipInferenceABS(ABC):
