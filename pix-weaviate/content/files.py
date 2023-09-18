@@ -31,17 +31,18 @@ class Img(ABC):
         ...        
     
 
+
 class ImageContent(Img):
 
     def __init__(self, content: Union[str, bytes, Path, IO[bytes]]):
         if type(content) == str and content.startswith("file://"):
             _local_path = urllib.parse.unquote(content[len('file://'):])
             self.im_imgg = Image.open(_local_path)
-        # _parse_image decodes the base64 and parses the image bytes into a
+        # decodes the base64 and parses the image bytes into a
         # PIL.Image. If the image is not in RGB mode, e.g. for PNGs using a palette,
         # it will be converted to RGB. This makes sure that they work with
-        # SentenceTransformers/Huggingface Transformers which seems to require a (3,
-        # height, width) tensor        
+        # SentenceTransformers/Huggingface Transformers which seems to require a 
+        # (3, height, width) tensor        
         elif type(content) == str: 
             image_bytes = base64.b64decode(content)
             self._img = Image.open(io.BytesIO(image_bytes))
