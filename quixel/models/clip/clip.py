@@ -1,43 +1,41 @@
-import open_clip
-import torch
-import json
-import asyncio
-import io
-import os
-import base64
-import urllib.parse
-
-
+from logging import getLogger
 from os import path
 from abc import ABC, abstractmethod
-from typing import Union, List, IO
-from PIL import Image
-from pydantic import BaseModel, FileUrl
-from transformers import CLIPProcessor, CLIPModel
-from sentence_transformers import SentenceTransformer
+from typing import Union, List
 from dataclasses import dataclass, field
 
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 
-from content import ImageContent
+import json
+import asyncio
+import io
+import os
+import base64
+
+import open_clip
+import torch
+
+from transformers import CLIPProcessor, CLIPModel
+from sentence_transformers import SentenceTransformer
+
 from .pretrained import BASE_DIR
 
-from logging import getLogger
+
+from quixel.io import Img
+
 
 logger = getLogger('clip')
 
 @dataclass
 class ClipInput:
 	texts: List[str] = field(default_factory=list)
-	images: List[ImageContent] = field(default_factory=list)
-
+	images: List[Img] = field(default_factory=list)
 
 @dataclass
 class ClipResult:
 	text_vectors: list = field(default_factory=list)
 	image_vectors: list = field(default_factory=list)
-
 
 
 class ClipInferenceABS(ABC):
@@ -63,6 +61,20 @@ class ClipInferenceSentenceTransformers(ClipInferenceABS):
 
 		self.img_model = SentenceTransformer(f'{BASE_DIR}/clip', device=device)
 		self.text_model = SentenceTransformer(f'{BASE_DIR}/text', device=device)
+
+	def jls_extract_def(self, payload, image, convert_to_tensor):
+	    if payload.images:
+	    	try:
+	    		self.lock.acquire()
+	    		image_files = [_parse_image(image) for image in payload.images]
+	    		image_vectors = (
+	    			self.img_model
+	    			.encode(image_files, convert_to_tensor=True)
+	    			.tolist()
+	    		)
+	    	finally:
+	    		self.lock.release()
+	    return image_vectors
 
 	def vectorize(self, payload: ClipInput) -> ClipResult:
 		"""
@@ -90,19 +102,9 @@ class ClipInferenceSentenceTransformers(ClipInferenceABS):
 				)
 			finally:
 				self.lock.release()
-		
+			
 		image_vectors = []
-		if payload.images:
-			try:
-				self.lock.acquire()
-				image_files = [_parse_image(image) for image in payload.images]
-				image_vectors = (
-					self.img_model
-					.encode(image_files, convert_to_tensor=True)
-					.tolist()
-				)
-			finally:
-				self.lock.release()
+		image_vectors = self.jls_extract_def(payload, image, convert_to_tensor)
 
 		return ClipResult(
 			text_vectors=text_vectors,
@@ -315,5 +317,5 @@ class Clip:
 
 
 
-def _parse_image(content: ImageContent):
+def _parse_image(content: Img):
 	return content.content

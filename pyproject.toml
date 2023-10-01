@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "fixel"
+version = "0.1.0"
+description = ""
+authors = ["Bohdan Snisar <bogdan.sns@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+torch = "^2.0"
+sentence-transformers = "^2.2"
+open-clip-torch = "^2.20"
+transformers = "^4.30"
+pydantic = "^2.4.2"
+pillow = "^10.0.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

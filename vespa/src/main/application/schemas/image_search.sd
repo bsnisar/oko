@@ -1,0 +1,42 @@
+
+schema images {
+
+  document images {
+
+    field image_uid type string {
+      indexing: attribute | summary
+    }
+
+    field image_url type string {
+      indexing: summary
+    }
+
+    field mult2vec_clip_b_32_image type tensor<float>(x[512]) {
+      indexing: attribute | index
+      attribute {
+        distance-metric: euclidean
+      }
+      index {
+        hnsw {
+          max-links-per-node: 16
+          neighbors-to-explore-at-insert: 200
+        }
+      }
+    }
+  }
+
+  field last_modified type long {
+    indexing: now | attribute | summary
+  }  
+
+  rank-profile mult2vec_clip_b_32_similarity inherits default {
+    inputs {
+      query(vit_b_32_text) tensor<float>(x[512])
+    }
+
+    first-phase {
+      expression: closeness(mult2vec_clip_b_32_image)
+    }
+  }  
+
+}

@@ -13,6 +13,9 @@ $ source /path/to/venv/bin/activate
 (env) $ python -m pip install pip-tools
 (env) $ pip-compile
 ```
+```
+docker pull vespaengine/vespa:8.230.17
+```
 
 
 ## Download

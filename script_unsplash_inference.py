@@ -18,14 +18,6 @@ import asyncio
 from pathlib import Path
 
 
-# Define transformation to apply to the images (resize, normalize, etc.)
-transform = transforms.Compose([
-    transforms.Resize((224, 224)),  # Resize images to a specific size
-    transforms.ToTensor(),           # Convert images to tensors
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize images
-])
-
-
 def _partition_list_into_batches(input_list, batch_size):
     for i in range(0, len(input_list), batch_size):
         yield input_list[i:i + batch_size]
