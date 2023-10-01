@@ -30,6 +30,11 @@ class ImageIO(ABC):
 
     """
 
+    @staticmethod
+    def create(content):
+        return create(content)
+
+
     @functools.cached_property
     def content(self) -> Image:
         """

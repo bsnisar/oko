@@ -1,0 +1,1 @@
+from fixel.ai.clip.inference import Clip

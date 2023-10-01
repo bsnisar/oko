@@ -4,6 +4,7 @@ from os import path
 from abc import ABC, abstractmethod
 from typing import Union, List
 from dataclasses import dataclass, field
+from enum import Enum
 
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
@@ -48,7 +49,6 @@ class ClipInference(ABC):
 		...
 
 
-
 class ClipInferenceOpenAI(ClipInference):
 	"""
 	See https://github.com/weaviate/multi2vec-clip-inference/blob/01bb8e5a655061167592e73f6d9b23c979eac0a3/clip.py#L102C10-L102C10
@@ -62,8 +62,8 @@ class ClipInferenceOpenAI(ClipInference):
 		self.device = 'cpu'
 		if cuda:
 			self.device=cuda_core
-		self.clip_model = CLIPModel.from_pretrained(f'${get_models_dir}/${NAME_MODEL_OPENAI}').to(self.device)
-		self.processor = CLIPProcessor.from_pretrained(f'${get_models_dir}/${NAME_PROCESSOR_OPENAI}')
+		self.clip_model = CLIPModel.from_pretrained(f'${get_models_dir()}/${NAME_MODEL_OPENAI}').to(self.device)
+		self.processor = CLIPProcessor.from_pretrained(f'${get_models_dir()}/${NAME_PROCESSOR_OPENAI}')
 
 
 	def vectorize(self, payload: ClipInput) -> ClipResult:
@@ -130,7 +130,38 @@ class ClipInferenceOpenAI(ClipInference):
 		)
 
 
+class ClipModelType(Enum):
+    OPENAI = 1
+    HF = 2
 
 
+class Clip:
+
+	clip: ClipInference
+	executor: ThreadPoolExecutor
+
+	def __init__(self, cuda, cuda_core, model_type: ClipModelType = ClipModelType.OPENAI):
+		self.executor = ThreadPoolExecutor()
+
+		if model_type == ClipModelType.OPENAI:
+			self.clip = ClipInferenceOpenAI(cuda, cuda_core)
+		else:
+			raise ValueError(f"unsupported model type ${model_type}")
 
 
+	async def vectorize(self, payload: ClipInput):
+		"""
+		Vectorize data from Weaviate.
+
+		Parameters
+		----------
+		payload : ClipInput
+			Input to the Clip model.
+
+		Returns
+		-------
+		ClipResult
+			The result of the model for both images and text.
+		"""
+
+		return await asyncio.wrap_future(self.executor.submit(self.clip.vectorize, payload))

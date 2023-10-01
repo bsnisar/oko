@@ -3,6 +3,7 @@ import sys
 import logging
 import json
 
+
 # pylint: disable=E0401
 
 from transformers import CLIPProcessor, CLIPModel
@@ -24,6 +25,7 @@ NAME_PROCESSOR_OPENAI = 'openai_clip_processor'
 def get_models_dir():
     return _MODELS_BASE_DIR
 
+
 def _norm_model_name(p):
     return str(p).replace("/", "_")
 
@@ -36,7 +38,7 @@ def load_openai_clip(
     if clip_model_name != text_model_name:
         raise RuntimeError("For OpenAI models the 'CLIP_MODEL_NAME' and 'TEXT_MODEL_NAME' must be the same!")
 
-    logging.info("Downloading OpenAI CLIP model %s from huggingface model hub into [%s]", clip_model_name, get_models_dir())
+    logging.info("Downloading OpenAI CLIP model %s from huggingface model hub into [%s]", clip_model_name, _MODELS_BASE_DIR)
         
     _model_dir = f'{_MODELS_VAR_DIR}/openai_clip__{_norm_model_name(clip_model_name)}'
     _processor_name = f'{_MODELS_VAR_DIR}/openai_clip_processor__{_norm_model_name(clip_model_name)}'
