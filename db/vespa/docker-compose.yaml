@@ -1,0 +1,16 @@
+version: '3'
+services:
+  vespa:
+    image: vespaengine/vespa:8.232.19
+    container_name: vespa
+    ports:
+      - "8080:8080"  # HTTP port
+      - "19071:19071"  # Metrics port
+    volumes:
+      - ./application:/app
+    networks:
+      - vespa-network
+
+
+networks:
+  vespa-network:

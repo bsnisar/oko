@@ -15,10 +15,10 @@ class FeedImage():
     payload: ImageIO
 
 
+
 class InferencePipeline:
 
     def __init__(self):
-
         cuda_env = os.getenv("ENABLE_CUDA")
         cuda_support=False
         cuda_core=""        
@@ -35,7 +35,7 @@ class InferencePipeline:
         self.clip = Clip(cuda_support, cuda_core)
 
 
-    def inference_multi2vec(self, record):
+    def inference_multi2vec(self, records: list[FeedImage]):
         pass
 
     def feed(self):

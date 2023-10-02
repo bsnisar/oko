@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "fixel"
+name = "oko"
 version = "0.1.0"
 description = ""
 authors = ["Bohdan Snisar <bogdan.sns@gmail.com>"]
