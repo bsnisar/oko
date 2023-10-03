@@ -8,6 +8,7 @@ from enum import Enum
 
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
+from oko.ai import VecInput, VecOutput, Inference
 
 import json
 import asyncio
@@ -15,41 +16,19 @@ import io
 import os
 
 # pylint: disable=E0401
-
 import open_clip
 import torch
 from transformers import CLIPProcessor, CLIPModel
 from sentence_transformers import SentenceTransformer
-
 # pylint: enable=E0401
 
-from fixel.io.img import ImageIO
-from fixel.ai.clip.loader import get_models_dir, NAME_MODEL_OPENAI, NAME_PROCESSOR_OPENAI
+from oko.io import ImageIO
+from oko.ai.clip.loader import get_models_dir, NAME_MODEL_OPENAI, NAME_PROCESSOR_OPENAI
 
 
-@dataclass
-class ClipInput:
-	texts: List[str] = field(default_factory=list)
-	images: List[ImageIO] = field(default_factory=list)
 
 
-@dataclass
-class ClipResult:
-	text_vectors: list = field(default_factory=list)
-	image_vectors: list = field(default_factory=list)
-
-
-class ClipInference(ABC):
-	"""
-	Abstract class for Clip Inference models that should be inherited from.
-	"""
-
-	@abstractmethod
-	def vectorize(self, payload: ClipInput) -> ClipResult:
-		...
-
-
-class ClipInferenceOpenAI(ClipInference):
+class ClipInferenceOpenAI():
 	"""
 	See https://github.com/weaviate/multi2vec-clip-inference/blob/01bb8e5a655061167592e73f6d9b23c979eac0a3/clip.py#L102C10-L102C10
 	"""
@@ -66,7 +45,7 @@ class ClipInferenceOpenAI(ClipInference):
 		self.processor = CLIPProcessor.from_pretrained(f'${get_models_dir()}/${NAME_PROCESSOR_OPENAI}')
 
 
-	def vectorize(self, payload: ClipInput) -> ClipResult:
+	def vectorize(self, payload: VecInput) -> VecOutput:
 		"""
 		Vectorize data from Weaviate.
 
@@ -77,7 +56,7 @@ class ClipInferenceOpenAI(ClipInference):
 
 		Returns
 		-------
-		ClipResult
+		VecOutput
 			The result of the model for both images and text.
 		"""
 
@@ -124,7 +103,7 @@ class ClipInferenceOpenAI(ClipInference):
 			finally:
 				self.lock.release()
 
-		return ClipResult(
+		return VecOutput(
 			text_vectors=text_vectors,
 			image_vectors=image_vectors,
 		)
@@ -135,7 +114,7 @@ class ClipModelType(Enum):
     HF = 2
 
 
-class Clip:
+class Clip(Inference):
 
 	clip: ClipInference
 	executor: ThreadPoolExecutor
@@ -149,7 +128,7 @@ class Clip:
 			raise ValueError(f"unsupported model type ${model_type}")
 
 
-	async def vectorize(self, payload: ClipInput):
+	async def vectorize(self, payload: VecInput) -> VecOutput:
 		"""
 		Vectorize data from Weaviate.
 

@@ -1,24 +1,43 @@
 
 import os
+
 from logging import getLogger
 from dataclasses import dataclass, field
+from pydantic import BaseModel
 
-from fixel.io import ImageIO
-from fixel.ai.clip import Clip
+from oko.io import ImageIO
+from oko.ai import Inference, VecInput, VecOutput
+from oko.ai.clip import Clip
 
 logger = getLogger('inference')
 
 @dataclass
-class FeedImage():
-    uid: str
-    url: str
-    payload: ImageIO
+class ImageDoc:
+    image_id: str
+    image_url: str
+    image: ImageIO
 
 
-
-class InferencePipeline:
+class Processor(object):
 
     def __init__(self):
+        clip: Inference = self._create_clip_model()
+
+    async def feed(doc: ImageDoc):
+        return {
+            "id": doc.image_id,
+            "fields": {
+                "image_id": doc.image_id,
+                "image_url": doc.image_url,
+                "image_embed_clip": { "values": await self.clip.vectorize_image(doc.payload) },
+            },
+            "create": True,
+        }
+
+    def _create_clip_model(self) -> Inference:
+        """
+        Create model
+        """        
         cuda_env = os.getenv("ENABLE_CUDA")
         cuda_support=False
         cuda_core=""        
@@ -32,14 +51,5 @@ class InferencePipeline:
         else:
             logger.info("Running on CPU")
 
-        self.clip = Clip(cuda_support, cuda_core)
+        return Clip(cuda_support, cuda_core)    
 
-
-    def inference_multi2vec(self, records: list[FeedImage]):
-        pass
-
-    def feed(self):
-        pass
-
-    def run_pipeline(self):
-        pass

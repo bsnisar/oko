@@ -11,7 +11,7 @@ schema images {
       indexing: summary
     }
 
-    field mult2vec_clip_b_32_image type tensor<float>(x[512]) {
+    field image_embed_clip type tensor<float>(x[512]) {
       indexing: attribute | index
       attribute {
         distance-metric: euclidean
@@ -29,13 +29,13 @@ schema images {
     indexing: now | attribute | summary
   }  
 
-  rank-profile mult2vec_clip_b_32_similarity inherits default {
+  rank-profile image_embed_clip_similarity inherits default {
     inputs {
       query(vit_b_32_text) tensor<float>(x[512])
     }
 
     first-phase {
-      expression: closeness(mult2vec_clip_b_32_image)
+      expression: closeness(image_embed_clip)
     }
   }  
 
