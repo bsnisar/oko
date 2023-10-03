@@ -1,3 +1,8 @@
+
+
+<img src="https://raw.githubusercontent.com/bsnisar/oko/main/assets/logo.png" width="185" title="hi">
+
+
 ## Info
 
 In various applications, such as information retrieval, recommendation systems, and semantic search, we often need to find similar items or documents based on their content. Embeddings provide an efficient way to represent these items as dense vectors, where items with similar meanings are located close to each other in the vector space. 
