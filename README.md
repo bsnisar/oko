@@ -1,6 +1,6 @@
 
 
-<img src="https://raw.githubusercontent.com/bsnisar/oko/master/assets/logo.png" width="185" title="hi">
+<img src="https://raw.githubusercontent.com/bsnisar/oko/master/assets/a_logo.png" width="185" title="hi">
 
 
 ## Info
