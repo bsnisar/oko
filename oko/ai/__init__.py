@@ -1,1 +1,1 @@
-import oko.ai.types
+from oko.ai.types import Inference, VecInput, VecOutput

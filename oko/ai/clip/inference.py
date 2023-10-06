@@ -8,7 +8,6 @@ from enum import Enum
 
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
-from oko.ai import VecInput, VecOutput, Inference
 
 import json
 import asyncio
@@ -23,12 +22,18 @@ from sentence_transformers import SentenceTransformer
 # pylint: enable=E0401
 
 from oko.io import ImageIO
-from oko.ai.clip.loader import get_models_dir, NAME_MODEL_OPENAI, NAME_PROCESSOR_OPENAI
+from oko.ai import VecInput, VecOutput, Inference
+from oko.ai.clip.pretrained import get_models_dir, NAME_MODEL_OPENAI, NAME_PROCESSOR_OPENAI
 
 
+class ClipInference(ABC):
+
+	@abstractmethod
+	def vectorize(self, payload: VecInput) -> VecOutput:
+		...
 
 
-class ClipInferenceOpenAI():
+class ClipInferenceOpenAI(ClipInference):
 	"""
 	See https://github.com/weaviate/multi2vec-clip-inference/blob/01bb8e5a655061167592e73f6d9b23c979eac0a3/clip.py#L102C10-L102C10
 	"""
@@ -41,8 +46,8 @@ class ClipInferenceOpenAI():
 		self.device = 'cpu'
 		if cuda:
 			self.device=cuda_core
-		self.clip_model = CLIPModel.from_pretrained(f'${get_models_dir()}/${NAME_MODEL_OPENAI}').to(self.device)
-		self.processor = CLIPProcessor.from_pretrained(f'${get_models_dir()}/${NAME_PROCESSOR_OPENAI}')
+		self.clip_model = CLIPModel.from_pretrained(f'{get_models_dir()}/{NAME_MODEL_OPENAI}').to(self.device)
+		self.processor = CLIPProcessor.from_pretrained(f'{get_models_dir()}/{NAME_PROCESSOR_OPENAI}')
 
 
 	def vectorize(self, payload: VecInput) -> VecOutput:

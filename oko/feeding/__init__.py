@@ -1,0 +1,1 @@
+from oko.feeding.types import ImgDoc, Processor, VespaProcessor
