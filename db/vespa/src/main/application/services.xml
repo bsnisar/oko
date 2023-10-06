@@ -24,7 +24,7 @@
   <content id="mycluster" version="1.0">
     <redundancy>2</redundancy>
     <documents>
-      <document type="image_search" mode="index" />
+      <document type="images" mode="index" />
     </documents>
     <nodes>
       <node hostalias="node1" distribution-key="0" />

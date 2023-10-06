@@ -16,8 +16,8 @@ logger = getLogger('inference')
 @dataclass
 class ImgDoc:
     image_id: str
-    image: ImageIO
     image_url: str
+    image: ImageIO
 
 
 class Processor(ABC):
@@ -35,7 +35,7 @@ class Processor(ABC):
 
 
     async def feed_sync(doc: ImgDoc):
-        asyncio.run(feed(doc))
+        return asyncio.run(feed(doc))
 
 
     async def _clip_vectorize_image(self, img: ImageIO):
@@ -62,21 +62,3 @@ class Processor(ABC):
             logger.info("Running on CPU")
 
         return Clip(cuda_support, cuda_core)
-
-
-
-
-class VespaProcessor(Processor):
-
-
-    async def feed(doc: ImgDoc):
-        payload_embed = await self._clip_vectorize_image(doc.payload)
-        return {
-            "id": doc.image_id,
-            "fields": {
-                "image_id": doc.image_id,
-                "image_url": doc.image_url,
-                "image_embed_clip": { "values": payload_embed },
-            },
-            "create": True,
-        }

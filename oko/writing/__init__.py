@@ -1,0 +1,1 @@
+from oko.writing.types import ImgDoc, Processor, VespaProcessor
